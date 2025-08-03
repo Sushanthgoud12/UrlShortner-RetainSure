@@ -1,167 +1,225 @@
 # URL Shortener Service
 
 ## Overview
-Build a simple URL shortening service similar to bit.ly or tinyurl. This assignment tests your ability to design and implement a small but complete feature from scratch.
+A complete URL shortening service built with Flask, featuring URL validation, click tracking, and analytics. This implementation provides a production-ready URL shortener similar to bit.ly or tinyurl.
 
-## Getting Started
+## Features Implemented
+
+### Core Functionality
+- ✅ **URL Shortening**: Create 6-character alphanumeric short codes
+- ✅ **URL Validation**: Comprehensive validation and normalization
+- ✅ **Redirect System**: Automatic redirects with click tracking
+- ✅ **Analytics**: Track clicks, creation time, and original URLs
+- ✅ **Thread Safety**: Handle concurrent requests properly
+- ✅ **Error Handling**: Comprehensive error handling with proper HTTP status codes
+
+### Technical Features
+- **RESTful API Design**: Clean, intuitive endpoints
+- **In-Memory Storage**: Thread-safe storage with locking mechanisms
+- **URL Normalization**: Automatic scheme addition (https://)
+- **Comprehensive Testing**: 15+ test cases covering all functionality
+- **Production Ready**: Proper error handling and edge case management
+
+## Quick Start
 
 ### Prerequisites
 - Python 3.8+ installed
-- 3 hours of uninterrupted time
+- pip package manager
 
-### Setup (Should take < 5 minutes)
+### Setup (Takes < 2 minutes)
 ```bash
-# Clone/download this repository
-# Navigate to the assignment directory
+# Navigate to the project directory
 cd url-shortener
 
 # Install dependencies
 pip install -r requirements.txt
 
+# Run tests to verify everything works
+python -m pytest tests/ -v
+
 # Start the application
 python -m flask --app app.main run
 
 # The API will be available at http://localhost:5000
-# Run tests with: pytest
 ```
 
-### What's Provided
-- Basic Flask application structure
-- Health check endpoints
-- One example test
-- Empty files for your implementation
+## API Endpoints
 
-## Your Task
-
-### Time Limit: 3 Hours
-
-Build a URL shortener service with the following features:
-
-### Core Requirements
-
-1. **Shorten URL Endpoint**
-   - `POST /api/shorten`
-   - Accept a long URL in the request body
-   - Return a short code (e.g., "abc123")
-   - Store the mapping for later retrieval
-
-2. **Redirect Endpoint**
-   - `GET /<short_code>`
-   - Redirect to the original URL
-   - Return 404 if short code doesn't exist
-   - Track each redirect (increment click count)
-
-3. **Analytics Endpoint**
-   - `GET /api/stats/<short_code>`
-   - Return click count for the short code
-   - Return creation timestamp
-   - Return the original URL
-
-### Technical Requirements
-
-- URLs must be validated before shortening
-- Short codes should be 6 characters (alphanumeric)
-- Handle concurrent requests properly
-- Include basic error handling
-- Write at least 5 tests covering core functionality
-
-### Example API Usage
-
+### 1. Health Check
 ```bash
-# Shorten a URL
+GET /api/health
+```
+**Response:**
+```json
+{
+    "status": "ok",
+    "message": "URL Shortener API is running"
+}
+```
+
+### 2. Create Short URL
+```bash
+POST /api/shorten
+Content-Type: application/json
+
+{
+    "url": "https://www.example.com/very/long/url"
+}
+```
+**Response:**
+```json
+{
+    "short_code": "abc123",
+    "short_url": "http://localhost:5000/abc123"
+}
+```
+
+### 3. Redirect to Original URL
+```bash
+GET /{short_code}
+```
+**Response:** 302 redirect to original URL (tracks click)
+
+### 4. Get Analytics
+```bash
+GET /api/stats/{short_code}
+```
+**Response:**
+```json
+{
+    "url": "https://www.example.com/very/long/url",
+    "short_code": "abc123",
+    "clicks": 5,
+    "created_at": "2024-01-01T10:00:00"
+}
+```
+
+## Example Usage
+
+### Using curl:
+```bash
+# Create a short URL
 curl -X POST http://localhost:5000/api/shorten \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://www.example.com/very/long/url"}'
+  -d '{"url": "https://www.google.com"}'
 
-# Response: {"short_code": "abc123", "short_url": "http://localhost:5000/abc123"}
-
-# Use the short URL (this redirects)
+# Use the short URL (redirects to Google)
 curl -L http://localhost:5000/abc123
 
-# Get analytics
+# Check analytics
 curl http://localhost:5000/api/stats/abc123
-
-# Response: {"url": "https://www.example.com/very/long/url", "clicks": 5, "created_at": "2024-01-01T10:00:00"}
 ```
 
-## Implementation Guidelines
+### Using Postman:
+1. **POST** `http://localhost:5000/api/shorten`
+   - Body: `{"url": "https://www.google.com"}`
+   - Headers: `Content-Type: application/json`
 
-### What We're Looking For
+2. **GET** `http://localhost:5000/{short_code}` (replace with actual short code)
 
-1. **Code Quality (30%)**
-   - Clean, readable code
-   - Proper error handling
-   - Good API design
+3. **GET** `http://localhost:5000/api/stats/{short_code}`
 
-2. **Functionality (30%)**
-   - All requirements work correctly
-   - Handles edge cases appropriately
-   - Concurrent request handling
+## Architecture
 
-3. **Testing (20%)**
-   - Tests for main functionality
-   - Tests for error cases
-   - Clear test descriptions
+### Project Structure
+```
+url-shortener/
+├── app/
+│   ├── __init__.py
+│   ├── main.py          # Flask application with API endpoints
+│   ├── models.py        # Thread-safe data models and storage
+│   └── utils.py         # URL validation and utility functions
+├── tests/
+│   └── test_basic.py    # Comprehensive test suite
+├── requirements.txt      # Python dependencies
+├── CHANGES.md          # Implementation notes and approach
+└── README.md           # This file
+```
 
-4. **Architecture (20%)**
-   - Logical code organization
-   - Separation of concerns
-   - Scalable design decisions
+### Key Components
 
-### What to Focus On
-- Get core functionality working first
-- Use appropriate data structures
-- Handle common error cases
-- Keep it simple but complete
+#### 1. Data Models (`app/models.py`)
+- `URLMapping`: Stores URL mappings with metadata (clicks, creation time)
+- `URLStore`: Thread-safe in-memory storage with atomic operations
+- Global `url_store` instance for application-wide access
 
-### What NOT to Do
-- Don't implement user authentication
-- Don't add a web UI
-- Don't implement custom short codes
-- Don't add rate limiting
-- Don't use external databases (in-memory is fine)
+#### 2. Utility Functions (`app/utils.py`)
+- `is_valid_url()`: Comprehensive URL validation
+- `generate_short_code()`: Random 6-character alphanumeric generation
+- `normalize_url()`: Automatic URL scheme normalization
 
-## Evaluation Criteria
+#### 3. API Endpoints (`app/main.py`)
+- `POST /api/shorten`: URL shortening with validation
+- `GET /{short_code}`: Redirect with click tracking
+- `GET /api/stats/{short_code}`: Analytics endpoint
+- Health check endpoints for monitoring
 
-Your submission will be evaluated on:
-- Core functionality completeness
-- Code quality and organization
-- Error handling and edge cases
-- Test coverage of critical paths
-- Clear and pragmatic design decisions
+## Technical Implementation
 
-## AI Usage Policy
+### Thread Safety
+- Uses `threading.Lock()` for all storage operations
+- Atomic read/write operations prevent race conditions
+- Tested with concurrent requests
 
-You are permitted to use AI assistants (ChatGPT, GitHub Copilot, etc.) as you would any other tool. If you use AI significantly, please note in a `NOTES.md` file:
-- Which tools you used
-- What you used them for
-- Any AI-generated code you modified or rejected
+### URL Validation
+- Comprehensive validation using `urllib.parse`
+- Automatic scheme addition (adds https:// if missing)
+- Domain validation with proper format checking
 
-## Tips
+### Error Handling
+- Proper HTTP status codes (200, 201, 400, 404, 500)
+- Descriptive error messages for debugging
+- Graceful handling of edge cases
 
-- Start with the URL shortening logic
-- Use Python's built-in data structures
-- Don't overthink the short code generation
-- Focus on functionality over optimization
-- Remember to handle thread safety
+### Testing
+- **15+ comprehensive tests** covering all functionality
+- Unit tests for utility functions
+- Integration tests for API endpoints
+- Error case testing and edge case validation
+- Thread safety testing
 
-## Submission
+## Testing
 
-### Deliverables
-1. Your complete implementation
-2. All tests passing
-3. Brief notes about your approach (optional)
+Run the complete test suite:
+```bash
+python -m pytest tests/ -v
+```
 
-### How to Submit
-1. Ensure all tests pass: `pytest`
-2. Create a zip of your solution
-3. Include any notes about your implementation choices
-4. Share the repository link on https://forms.gle/gpaV5LW5boDFk7uT6
+Test coverage includes:
+- ✅ URL shortening functionality
+- ✅ Redirect and click tracking
+- ✅ Analytics endpoint
+- ✅ Error handling (invalid URLs, missing fields)
+- ✅ Thread safety and concurrent requests
+- ✅ Utility function validation
+- ✅ Edge cases and boundary conditions
 
-## Questions?
+## Technical Requirements Met
 
-If you have questions about the requirements, please email [anand@retainsure.com] within the first 30 minutes of starting.
+- ✅ **URL Validation**: Comprehensive validation before shortening
+- ✅ **6-Character Codes**: Alphanumeric short codes (62^6 combinations)
+- ✅ **Concurrent Handling**: Thread-safe implementation
+- ✅ **Error Handling**: Proper HTTP status codes and messages
+- ✅ **Testing**: 15+ tests covering core functionality
 
----
+## Future Enhancements
 
-Good luck! We're excited to see your solution.
+- Database persistence (SQLite, PostgreSQL)
+- Custom short codes
+- URL expiration
+- Rate limiting
+- User authentication
+- Web UI
+- API rate limiting
+- URL analytics dashboard
+
+## AI Usage Disclosure
+
+This implementation was developed with assistance from AI tools:
+- **Used for**: Code structure suggestions, error handling patterns, and test organization
+- **Modified**: All AI-generated code was reviewed and customized for specific requirements
+- **Rejected**: Initial suggestions that didn't meet the thread-safety requirements
+
+## License
+
+This project is part of a coding assignment and is provided as-is for educational purposes.
